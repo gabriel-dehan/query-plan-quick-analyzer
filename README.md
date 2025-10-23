@@ -117,6 +117,146 @@ psql -d mydb -c "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
 
 ## Understanding the Output
 
+### Analyze output
+```markdown
+======================================================================
+                         Query Plan Analysis
+======================================================================
+
+# Summary
+  Total Time:    2.55 s
+  Planning Time: 59.49 ms
+  Execution Time: 2.49 s
+  Total Cost:    155270.98
+  Rows (actual): 11,531
+  Rows (planned): 11,938
+
+# Timing
+  Planning:   59.49 ms (2.3%)
+  Execution:  2.49 s (97.7%)
+  Total:      2.55 s
+
+# Buffer Statistics
+  Shared Blocks:
+    Hit:      840,427 blocks
+    Read:     18,115 blocks
+    Dirtied:  0 blocks
+    Written:  0 blocks
+  Hit Ratio:  97.89%
+
+# Node Analysis
+  Index Scan                     17
+  Hash Join                      12
+  Hash                           12
+  Nested Loop                    9
+  Sort                           5
+  Seq Scan                       3
+  Merge Join                     2
+  Index Only Scan                2
+  Bitmap Heap Scan               2
+  Bitmap Index Scan              2
+  Aggregate                      1
+  Gather Merge                   1
+
+# Top 5 Most Expensive Operations
+  1. Index Only Scan on menu_item_tags
+     Time: 2.11 s, Cost: 11509.63, Rows: 127,888
+  2. Index Scan on restaurants
+     Time: 657.98 ms, Cost: 2.59, Rows: 0
+  3. Index Scan on items
+     Time: 565.02 ms, Cost: 2.6, Rows: 1
+  4. Index Only Scan on menu_tags
+     Time: 438.72 ms, Cost: 4368.97, Rows: 38,633
+  5. Hash
+     Time: 365.05 ms, Cost: 110190.42, Rows: 10,973
+
+# Sequential Scans (3)
+  leases                         31,266 rows, 82.05 ms, loops: 3
+  doubtful_debt_addendums        2,546 rows, 0.57 ms, loops: 1
+  doubtful_debts                 2,491 rows, 0.74 ms, loops: 1
+
+# Row Estimation Accuracy
+  Accurate estimates:   22
+  Inaccurate estimates: 46
+  Average ratio:        1.97
+  Worst estimates:
+    Index Scan (tags): 73 → 507 (6.9x off)
+    Hash: 73 → 507 (6.9x off)
+    Index Scan (tags): 73 → 507 (6.9x off)
+```
+
+### Comparison output
+
+```markdown
+======================================================================
+                        Query Plan Comparison
+======================================================================
+
+# Overall Verdict
+✓ IMPROVED (Time: -29.5%, Cost: +126.5%)
+
+# Key Changes
+  ↓ Total Time: 2550.23 → 1797.1 (-29.5%)
+  ↓ Total I/O Blocks: 18,115 → 14,126 (-22.0%)
+
+# Timing Comparison
+  planning_time                       59.49 →           43.66     -26.6%
+  execution_time                    2490.74 →         1753.45     -29.6%
+  total_time                        2550.23 →          1797.1     -29.5%
+
+# Cost Comparison
+  total_cost                      155270.98 →       351713.22    +126.5%
+  startup_cost                    155241.13 →       351683.37    +126.5%
+
+# Buffer Comparison
+  shared_hit_blocks                 840,427 →         539,047     -35.9%
+  shared_read_blocks                 18,115 →          14,126     -22.0%
+  shared_dirtied_blocks                   0 →               0       0.0%
+  shared_written_blocks                   0 →               0       0.0%
+  temp_read_blocks                        0 →               0       0.0%
+  temp_written_blocks                     0 →               0       0.0%
+  local_hit_blocks                        0 →               0       0.0%
+  local_read_blocks                       0 →               0       0.0%
+  buffer_hit_ratio                    97.89 →           97.45      -0.5%
+  total_io_blocks                    18,115 →          14,126     -22.0%
+
+# Node Type Changes
+  - Hash Join                      12 → 8 (-4)
+  - Hash                           12 → 8 (-4)
+  + Limit                          0 → 4 (+4)
+  - Seq Scan                       3 → 0 (-3)
+  - Sort                           5 → 3 (-2)
+  + Index Scan                     17 → 19 (+2)
+  - Gather Merge                   1 → 0 (-1)
+  - Merge Join                     2 → 1 (-1)
+  + Gather                         0 → 1 (+1)
+
+# Row Count Comparison
+  Actual Rows:   11,531 → 11,531 (0.0%)
+  Planned Rows:  11,938 → 11,938 (0.0%)
+
+  Estimation Accuracy:
+    Before: 22 accurate, 46 inaccurate (avg ratio: 1.97)
+    After:  20 accurate, 40 inaccurate (avg ratio: 1.65)
+    ✓ Estimation improved!
+
+# Sequential Scan Comparison
+  Count:      3 → 0 (-3)
+  Total Time: 83.37 ms → 0 ms
+  Total Rows: 36,303 → 0
+
+# Sort Comparison
+  Sort Count:      5 → 3 (-2)
+  Disk Sorts:      0 → 0 (0)
+  Total Sort Time: 283.59 ms → 252.44 ms
+
+# Plan Complexity
+  Plan Depth:   30 → 19 (-11)
+  Total Nodes:  68 → 60 (-8)
+  ✓ Plan simplified
+```
+
+
 ### Metrics Explained
 
 - **Planning Time**: Time PostgreSQL spent generating the query plan
