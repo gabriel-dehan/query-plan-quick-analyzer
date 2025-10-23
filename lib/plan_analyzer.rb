@@ -23,14 +23,16 @@ class PlanAnalyzer
     end
   end
 
-  # Get actual time by node type
+  # Get actual time by node type (exclusive time - not including children)
+  # This avoids double-counting since Actual Total Time includes child times
   def time_by_node_type
     all_nodes.group_by { |n| n['Node Type'] }.transform_values do |nodes|
-      nodes.sum { |n| (n['Actual Total Time'] || 0) * (n['Actual Loops'] || 1) }
+      nodes.sum { |n| calculate_exclusive_time(n) }
     end
   end
 
   # Identify expensive operations (top N by actual time)
+  # Uses exclusive time to avoid counting parent overhead that includes children
   def expensive_operations(limit = 5)
     all_nodes
       .select { |n| n['Actual Total Time'] }
@@ -38,7 +40,7 @@ class PlanAnalyzer
         {
           node_type: node['Node Type'],
           relation_name: node['Relation Name'],
-          total_time: node['Actual Total Time'] * (node['Actual Loops'] || 1),
+          total_time: calculate_exclusive_time(node),
           rows: node['Actual Rows'],
           cost: node['Total Cost']
         }
@@ -53,7 +55,7 @@ class PlanAnalyzer
       {
         relation: node['Relation Name'],
         rows: node['Actual Rows'],
-        total_time: node['Actual Total Time'] * (node['Actual Loops'] || 1),
+        total_time: calculate_exclusive_time(node),
         loops: node['Actual Loops'] || 1,
         filter: node['Filter']
       }
@@ -68,13 +70,14 @@ class PlanAnalyzer
         relation: node['Relation Name'],
         index_name: node['Index Name'],
         rows: node['Actual Rows'],
-        total_time: node['Actual Total Time'] * (node['Actual Loops'] || 1),
+        total_time: calculate_exclusive_time(node),
         loops: node['Actual Loops'] || 1
       }
     end
   end
 
   # Find sorts and their memory usage
+  # Returns exclusive time (not including children) to avoid double-counting
   def sorts
     all_nodes.select { |n| n['Node Type'] == 'Sort' }.map do |node|
       {
@@ -83,7 +86,7 @@ class PlanAnalyzer
         sort_space_used: node['Sort Space Used'],
         sort_space_type: node['Sort Space Type'],
         rows: node['Actual Rows'],
-        total_time: node['Actual Total Time'] * (node['Actual Loops'] || 1),
+        total_time: calculate_exclusive_time(node),
         loops: node['Actual Loops'] || 1
       }
     end
@@ -98,35 +101,26 @@ class PlanAnalyzer
         rows_estimated: node['Plan Rows'],
         rows_actual: node['Actual Rows'],
         estimation_accuracy: calculate_estimation_accuracy(node['Plan Rows'], node['Actual Rows']),
-        total_time: node['Actual Total Time'] * (node['Actual Loops'] || 1),
+        total_time: calculate_exclusive_time(node),
         loops: node['Actual Loops'] || 1
       }
     end
   end
 
-  # Calculate total buffer usage across all nodes
+  # Calculate total buffer usage from root node
+  # Note: PostgreSQL's EXPLAIN buffer statistics are cumulative - parent nodes
+  # include all child node buffers. So we only need the root node's statistics.
   def total_buffer_stats
     stats = {
-      shared_hit_blocks: 0,
-      shared_read_blocks: 0,
-      shared_dirtied_blocks: 0,
-      shared_written_blocks: 0,
-      temp_read_blocks: 0,
-      temp_written_blocks: 0,
-      local_hit_blocks: 0,
-      local_read_blocks: 0
+      shared_hit_blocks: plan_node['Shared Hit Blocks'] || 0,
+      shared_read_blocks: plan_node['Shared Read Blocks'] || 0,
+      shared_dirtied_blocks: plan_node['Shared Dirtied Blocks'] || 0,
+      shared_written_blocks: plan_node['Shared Written Blocks'] || 0,
+      temp_read_blocks: plan_node['Temp Read Blocks'] || 0,
+      temp_written_blocks: plan_node['Temp Written Blocks'] || 0,
+      local_hit_blocks: plan_node['Local Hit Blocks'] || 0,
+      local_read_blocks: plan_node['Local Read Blocks'] || 0
     }
-
-    all_nodes.each do |node|
-      stats[:shared_hit_blocks] += node['Shared Hit Blocks'] || 0
-      stats[:shared_read_blocks] += node['Shared Read Blocks'] || 0
-      stats[:shared_dirtied_blocks] += node['Shared Dirtied Blocks'] || 0
-      stats[:shared_written_blocks] += node['Shared Written Blocks'] || 0
-      stats[:temp_read_blocks] += node['Temp Read Blocks'] || 0
-      stats[:temp_written_blocks] += node['Temp Written Blocks'] || 0
-      stats[:local_hit_blocks] += node['Local Hit Blocks'] || 0
-      stats[:local_read_blocks] += node['Local Read Blocks'] || 0
-    end
 
     total_shared = stats[:shared_hit_blocks] + stats[:shared_read_blocks]
     stats[:buffer_hit_ratio] = total_shared.zero? ? 100.0 : (stats[:shared_hit_blocks].to_f / total_shared * 100).round(2)
@@ -162,6 +156,24 @@ class PlanAnalyzer
   end
 
   private
+
+  # Calculate exclusive time for a node (time spent in this node, not including children)
+  # PostgreSQL's Actual Total Time includes all child times, so we subtract them
+  def calculate_exclusive_time(node)
+    # Total time for this node (inclusive of children) multiplied by loops
+    total_inclusive_time = (node['Actual Total Time'] || 0) * (node['Actual Loops'] || 1)
+
+    # Sum up all children's times
+    children_time = 0
+    if node['Plans']
+      node['Plans'].each do |child|
+        children_time += (child['Actual Total Time'] || 0) * (child['Actual Loops'] || 1)
+      end
+    end
+
+    # Exclusive time is the difference (with a floor of 0 to handle rounding errors)
+    [total_inclusive_time - children_time, 0].max
+  end
 
   def collect_nodes(node, collection = [])
     collection << node
