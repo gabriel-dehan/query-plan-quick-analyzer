@@ -1,0 +1,131 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/query_plan_analyzer'
+require_relative '../lib/plan_analyzer'
+require_relative '../lib/plan_comparator'
+require_relative '../lib/plan_reporter'
+
+def usage
+  puts <<~USAGE
+    PostgreSQL Query Plan Analyzer
+
+    Usage:
+      #{$PROGRAM_NAME} <plan_file.json>                    # Analyze single plan
+      #{$PROGRAM_NAME} <plan1.json> <plan2.json>           # Compare two plans
+      #{$PROGRAM_NAME} <plan1.json> <plan2.json> [options] # Compare with options
+
+    Options:
+      --export-csv <file.csv>   Export comparison to CSV
+      --export-json <file.json> Export comparison to JSON
+      --no-color                Disable colored output
+      --help, -h                Show this help message
+
+    Examples:
+      # Analyze a single query plan
+      #{$PROGRAM_NAME} query_plan.json
+
+      # Compare two query plans
+      #{$PROGRAM_NAME} before_optimization.json after_optimization.json
+
+      # Compare and export to CSV
+      #{$PROGRAM_NAME} before.json after.json --export-csv comparison.csv
+
+    Notes:
+      - Plan files must be in JSON format (use EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON))
+      - To generate a plan file, run in PostgreSQL:
+        EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT ... \\g plan.json
+  USAGE
+end
+
+def parse_args(args)
+  options = {
+    plan_files: [],
+    export_csv: nil,
+    export_json: nil,
+    use_colors: true
+  }
+
+  i = 0
+  while i < args.length
+    arg = args[i]
+
+    case arg
+    when '--help', '-h'
+      usage
+      exit 0
+    when '--export-csv'
+      i += 1
+      options[:export_csv] = args[i]
+    when '--export-json'
+      i += 1
+      options[:export_json] = args[i]
+    when '--no-color'
+      options[:use_colors] = false
+    when /^--/
+      puts "Unknown option: #{arg}"
+      puts "Run with --help for usage information"
+      exit 1
+    else
+      options[:plan_files] << arg
+    end
+
+    i += 1
+  end
+
+  options
+end
+
+def main
+  if ARGV.empty?
+    usage
+    exit 1
+  end
+
+  options = parse_args(ARGV)
+  reporter = PlanReporter.new(use_colors: options[:use_colors])
+
+  begin
+    case options[:plan_files].length
+    when 1
+      # Single plan analysis
+      plan_file = options[:plan_files][0]
+      plan = QueryPlanAnalyzer.new(plan_file)
+      analyzer = PlanAnalyzer.new(plan.plan_node)
+
+      puts reporter.report_single_plan(plan, analyzer)
+
+    when 2
+      # Comparison mode
+      plan_file1, plan_file2 = options[:plan_files]
+      comparator = PlanComparator.new(plan_file1, plan_file2)
+
+      puts reporter.report_comparison(comparator)
+
+      # Handle exports
+      if options[:export_csv]
+        reporter.export_comparison_csv(comparator, options[:export_csv])
+        puts "\nComparison exported to: #{options[:export_csv]}"
+      end
+
+      if options[:export_json]
+        reporter.export_comparison_json(comparator, options[:export_json])
+        puts "\nComparison exported to: #{options[:export_json]}"
+      end
+
+    else
+      puts "Error: Expected 1 or 2 plan files, got #{options[:plan_files].length}"
+      puts "Run with --help for usage information"
+      exit 1
+    end
+
+  rescue ArgumentError => e
+    puts "Error: #{e.message}"
+    exit 1
+  rescue StandardError => e
+    puts "Unexpected error: #{e.message}"
+    puts e.backtrace if ENV['DEBUG']
+    exit 1
+  end
+end
+
+main if __FILE__ == $PROGRAM_NAME

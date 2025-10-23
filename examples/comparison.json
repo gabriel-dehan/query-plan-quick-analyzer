@@ -1,0 +1,188 @@
+{
+  "verdict": {
+    "status": "improved",
+    "time_improvement": 42.56,
+    "cost_improvement": 33.0
+  },
+  "timing": [
+    {
+      "metric": "planning_time",
+      "before": 2.345,
+      "after": 1.987,
+      "difference": -0.3580000000000001,
+      "percent_change": -15.27,
+      "significant": true
+    },
+    {
+      "metric": "execution_time",
+      "before": 157.234,
+      "after": 89.678,
+      "difference": -67.55600000000001,
+      "percent_change": -42.97,
+      "significant": true
+    },
+    {
+      "metric": "total_time",
+      "before": 159.579,
+      "after": 91.66499999999999,
+      "difference": -67.91400000000002,
+      "percent_change": -42.56,
+      "significant": true
+    }
+  ],
+  "cost": [
+    {
+      "metric": "total_cost",
+      "before": 12456.78,
+      "after": 8345.67,
+      "difference": -4111.110000000001,
+      "percent_change": -33.0,
+      "significant": true
+    },
+    {
+      "metric": "startup_cost",
+      "before": 12345.67,
+      "after": 8234.56,
+      "difference": -4111.110000000001,
+      "percent_change": -33.3,
+      "significant": true
+    }
+  ],
+  "buffers": [
+    {
+      "metric": "shared_hit_blocks",
+      "before": 138278,
+      "after": 164846,
+      "difference": 26568,
+      "percent_change": 19.21,
+      "significant": true
+    },
+    {
+      "metric": "shared_read_blocks",
+      "before": 5724,
+      "after": 2147,
+      "difference": -3577,
+      "percent_change": -62.49,
+      "significant": true
+    },
+    {
+      "metric": "shared_dirtied_blocks",
+      "before": 0,
+      "after": 0,
+      "difference": 0,
+      "percent_change": 0.0,
+      "significant": false
+    },
+    {
+      "metric": "shared_written_blocks",
+      "before": 0,
+      "after": 0,
+      "difference": 0,
+      "percent_change": 0.0,
+      "significant": false
+    },
+    {
+      "metric": "temp_read_blocks",
+      "before": 0,
+      "after": 0,
+      "difference": 0,
+      "percent_change": 0.0,
+      "significant": false
+    },
+    {
+      "metric": "temp_written_blocks",
+      "before": 0,
+      "after": 0,
+      "difference": 0,
+      "percent_change": 0.0,
+      "significant": false
+    },
+    {
+      "metric": "local_hit_blocks",
+      "before": 0,
+      "after": 0,
+      "difference": 0,
+      "percent_change": 0.0,
+      "significant": false
+    },
+    {
+      "metric": "local_read_blocks",
+      "before": 0,
+      "after": 0,
+      "difference": 0,
+      "percent_change": 0.0,
+      "significant": false
+    },
+    {
+      "metric": "buffer_hit_ratio",
+      "before": 96.03,
+      "after": 98.71,
+      "difference": 2.6799999999999926,
+      "percent_change": 2.79,
+      "significant": true
+    },
+    {
+      "metric": "total_io_blocks",
+      "before": 5724,
+      "after": 2147,
+      "difference": -3577,
+      "percent_change": -62.49,
+      "significant": true
+    }
+  ],
+  "node_changes": [
+    {
+      "type": "Seq Scan",
+      "before": 1,
+      "after": 0,
+      "change": -1,
+      "percent_change": -100.0
+    },
+    {
+      "type": "Index Scan",
+      "before": 2,
+      "after": 3,
+      "change": 1,
+      "percent_change": 50.0
+    },
+    {
+      "type": "Sort",
+      "before": 1,
+      "after": 1,
+      "change": 0,
+      "percent_change": 0.0
+    },
+    {
+      "type": "Hash Join",
+      "before": 2,
+      "after": 2,
+      "change": 0,
+      "percent_change": 0.0
+    },
+    {
+      "type": "Hash",
+      "before": 2,
+      "after": 2,
+      "change": 0,
+      "percent_change": 0.0
+    }
+  ],
+  "key_changes": [
+    {
+      "category": "io",
+      "metric": "Total I/O Blocks",
+      "before": 5724,
+      "after": 2147,
+      "change_percent": -62.49,
+      "impact": "positive"
+    },
+    {
+      "category": "timing",
+      "metric": "Total Time",
+      "before": 159.579,
+      "after": 91.66499999999999,
+      "change_percent": -42.56,
+      "impact": "positive"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+Category,Metric,Before,After,Difference,Change %,Significant
+Timing,planning_time,2.345,1.987,-0.3580000000000001,-15.27,true
+Timing,execution_time,157.234,89.678,-67.55600000000001,-42.97,true
+Timing,total_time,159.579,91.66499999999999,-67.91400000000002,-42.56,true
+Cost,total_cost,12456.78,8345.67,-4111.110000000001,-33.0,true
+Cost,startup_cost,12345.67,8234.56,-4111.110000000001,-33.3,true
+Buffers,shared_hit_blocks,138278,164846,26568,19.21,true
+Buffers,shared_read_blocks,5724,2147,-3577,-62.49,true
+Buffers,shared_dirtied_blocks,0,0,0,0.0,false
+Buffers,shared_written_blocks,0,0,0,0.0,false
+Buffers,temp_read_blocks,0,0,0,0.0,false
+Buffers,temp_written_blocks,0,0,0,0.0,false
+Buffers,local_hit_blocks,0,0,0,0.0,false
+Buffers,local_read_blocks,0,0,0,0.0,false
+Buffers,buffer_hit_ratio,96.03,98.71,2.6799999999999926,2.79,true
+Buffers,total_io_blocks,5724,2147,-3577,-62.49,true
