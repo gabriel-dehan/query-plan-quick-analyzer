@@ -8,10 +8,10 @@ You have a SQL query in `.claude/local/thirdparties/queries/basic_with_changes.s
 
 ```bash
 # Using psql directly
-psql -d your_database -c "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) $(cat .claude/local/thirdparties/queries/basic_with_changes.sql)" > plan_before.json
+psql -d your_database -c "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) $(cat queries/query.sql)" > plan_before.json
 
 # Or in a psql session
-\i .claude/local/thirdparties/queries/basic_with_changes.sql
+\i queries/query.sql
 
 # Then wrap it with EXPLAIN
 EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
@@ -36,16 +36,16 @@ Based on the analysis, you might:
 
 Example - add an index:
 ```sql
--- If you see: "Sequential Scans (1) on ledger_events"
-CREATE INDEX idx_ledger_events_company_date
-ON ledger_events(company_id, date);
+-- If you see: "Sequential Scans (1) on items"
+CREATE INDEX idx_items_company_date
+ON items(company_id, date);
 ```
 
 ### Step 4: Generate New Plan and Compare
 
 ```bash
 # Generate plan after optimization
-psql -d your_database -c "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) $(cat .claude/local/thirdparties/queries/basic_with_changes.sql)" > plan_after.json
+psql -d your_database -c "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) $(cat queries/query.sql)" > plan_after.json
 
 # Compare the two plans
 ./bin/analyze_plan plan_before.json plan_after.json
@@ -60,7 +60,7 @@ If you're working in a Rails environment:
 
 ```ruby
 # In rails console
-sql = File.read('.claude/local/thirdparties/queries/basic_with_changes.sql')
+sql = File.read('queries/query.sql')
 explain_sql = "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) #{sql}"
 
 result = ActiveRecord::Base.connection.execute(explain_sql)
@@ -87,31 +87,6 @@ Then analyze:
 - No temp blocks
 - Accurate row estimates (ratio < 2x)
 - Low I/O timing
-
-### Common Optimizations for Your Query
-
-Based on your SQL (ledger_events query with multiple joins):
-
-1. **Composite index for date range filter:**
-   ```sql
-   CREATE INDEX idx_ledger_events_company_date
-   ON ledger_events(company_id, date);
-   ```
-
-2. **Indexes for join columns:**
-   ```sql
-   CREATE INDEX idx_ledger_events_journal
-   ON ledger_events(journal_id);
-
-   CREATE INDEX idx_ledger_events_plan_item
-   ON ledger_events(plan_item_id);
-   ```
-
-3. **Update statistics after data changes:**
-   ```sql
-   ANALYZE ledger_events;
-   ANALYZE journal_entries;
-   ```
 
 ## Tips
 
